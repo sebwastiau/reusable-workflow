@@ -1,0 +1,29 @@
+name: "Deploy workflow"
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+
+    secrets:
+      DOCKER_SERVICE_NAME:
+        required: true
+
+    outputs:
+      host:
+        description:
+        value: ${{ jobs.deploy_service.outputs.host }}
+
+jobs:
+  deploy_service:
+    name: Deploy service (only non master branch)
+    runs-on: ubuntu-18.04
+    outputs:
+      host: ${{ steps.update_service.outputs.host }}
+    steps:
+      - name: Docker deploy
+        id: update_service
+        run: |
+          echo "::set-output name=host::$(curl -d '{"service":"${{ secrets.DOCKER_SERVICE_NAME }}", "image":"ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ github.run_number }}"}' -H "Content-Type: application/json" -X POST webhooks.staging.mvstud.io/deploy)"

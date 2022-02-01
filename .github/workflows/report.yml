@@ -1,0 +1,21 @@
+name: "Report workflow"
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      digest:
+        required: true
+        type: string
+
+jobs:
+  report:
+    name: Report
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Report
+        run: |
+          echo Docker image name: ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ github.run_number }}
+          echo Digest: ${{ inputs.digest }}

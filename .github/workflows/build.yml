@@ -1,4 +1,4 @@
-name: "Build"
+name: "Build workflow"
 
 on:
   workflow_call:
@@ -10,12 +10,24 @@ on:
       DOCKER_HUB_ACCESS_TOKEN:
         required: true
 
+    outputs:
+      digest:
+        description: The digest of the new built Docker image
+        value: ${{ jobs.build.outputs.digest }}
+      image:
+        description: The name of the new built Docker image
+        value: ${{ jobs.build.outputs.image }}
+
 jobs:
   build:
     name: Build, scan and push Docker image
+
     runs-on: ubuntu-18.04
+
     outputs:
       digest: ${{ steps.docker_push.outputs.digest }}
+      image: ${{ steps.docker_meta.outputs.image }}
+
     steps:
       - name: Chect out the repo
         uses: actions/checkout@v2
@@ -69,14 +81,3 @@ jobs:
           push: true
           builder: ${{ steps.buildx.outputs.name }}
           tags: ${{ steps.docker_meta.outputs.tags }}
-
-  report:
-    name: Report
-    needs: [build]
-    if: ${{ github.ref_name == 'master' || github.ref_name == 'dev' || contains(github.event.head_commit.message, '[push image]')}}
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Report
-        run: |
-          echo Docker image name: ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ github.run_number }}
-          echo Digest: ${{ needs.build.outputs.digest }}
