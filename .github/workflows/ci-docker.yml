@@ -2,19 +2,6 @@ name: "Build"
 
 on:
   workflow_call:
-    inputs:
-      commit_message:
-        required: true
-        type: string
-      ref_name:
-        required: true
-        type: string
-      repository:
-        required: true
-        type: string
-      run_number:
-        required: true
-        type: string
     secrets:
       DOCKER_REPOSITORY_NAME:
         required: true
@@ -37,9 +24,9 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v2
         with:
-          images: ${{ secrets.DOCKER_REPOSITORY_NAME }},ghcr.io/${{ inputs.repository }}
+          images: ${{ secrets.DOCKER_REPOSITORY_NAME }},ghcr.io/${{ github.repository }}
           tags: |
-            type=ref,event=branch,suffix=-${{ inputs.run_number }}
+            type=ref,event=branch,suffix=-${{ github.run_number }}
 
       - name: Set up Docker Buildx
         id: buildx
@@ -69,13 +56,13 @@ jobs:
         uses: crazy-max/ghaction-container-scan@v1
         continue-on-error: true
         with:
-          image: ghcr.io/${{ inputs.repository }}:${{ inputs.ref_name }}-${{ inputs.run_number }}
+          image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ github.run_number }}
           severity_threshold: CRITICAL
           annotations: true
           dockerfile: ./Dockerfile
 
       - name: Push Docker image
-        if: ${{ inputs.ref_name == 'master' || inputs.ref_name == 'dev' || contains(inputs.commit_message, '[push image]')}}
+        if: ${{ github.ref_name == 'master' || github.ref_name == 'dev' || contains(github.event.head_commit.message, '[push image]')}}
         id: docker_push
         uses: docker/build-push-action@v2
         with:
@@ -86,10 +73,10 @@ jobs:
   report:
     name: Report
     needs: [build]
-    if: ${{ inputs.ref_name == 'master' || inputs.ref_name == 'dev' || contains(inputs.commit_message, '[push image]')}}
+    if: ${{ github.ref_name == 'master' || github.ref_name == 'dev' || contains(github.event.head_commit.message, '[push image]')}}
     runs-on: ubuntu-18.04
     steps:
       - name: Report
         run: |
-          echo Docker image name: ghcr.io/${{ inputs.repository }}:${{ inputs.ref_name }}-${{ inputs.run_number }}
+          echo Docker image name: ghcr.io/${{ github.repository }}:${{ github.ref_name }}-${{ github.run_number }}
           echo Digest: ${{ needs.build.outputs.digest }}
